@@ -24,6 +24,8 @@ def cycle(pairs, api, args, wb: Book):
                 ]
             )
         
+        pricings = sorted(pricings, key=lambda p: p[0])
+        
         df = pd.DataFrame(
             pricings,
             columns=['instrument', 'pipLocation', 'positiveFactor', 'negativeFactor']

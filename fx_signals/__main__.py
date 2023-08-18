@@ -20,7 +20,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def prepare_watchlist(api: v20.Context, args) -> dict:    
+def prepare_watchlist(api: v20.Context, args, currencies: list) -> dict:    
     available_intruments = api.account.instruments(
         args.config.active_account,
     )
@@ -29,13 +29,11 @@ def prepare_watchlist(api: v20.Context, args) -> dict:
     for instr in available_intruments.get('instruments'):
         if instr.type != 'CURRENCY':
             continue
-        pairs[instr.name] = instr
+        base, quote = instr.name.split('_')
+        if base in currencies and quote in currencies:
+            pairs[instr.name] = instr
     
-    us_pairs = {
-        instr_name: instr for instr_name, instr in pairs.items() if 'USD' in instr_name
-    }
-    
-    return us_pairs
+    return pairs
 
 def get_workbook() -> xw.Book:
     helper_workbook = os.path.expanduser('~/fx_helper.xlsx')
@@ -49,9 +47,15 @@ def df_key(pair, granularity):
     return f'{pair}_{granularity}'
 
 def warmup(pairs, api, *args, **kwargs) -> dict:
-    granularities: list = kwargs.get('granularities', ['M15', 'H1', 'H4', 'D'])
+    granularities: list = kwargs.get('granularities', ['M1', 'M15', 'H1', 'H4', 'D'])
     dataframes = dict()
-    return dataframes
+    incomplete_candles = list()
+    for pair in pairs:
+        for granularity in granularities:
+            key = df_key(pair, granularity)
+            dataframes[key], incomplete = get_df(api, pair, granularity, count=200)
+            incomplete_candles.extend(incomplete)
+    return dataframes, incomplete_candles
 
 def main():
     parser = argparse.ArgumentParser()
@@ -62,14 +66,30 @@ def main():
     api: v20.Context = args.config.create_context()
     streaming_api = args.config.create_streaming_context()
     
-    pairs: dict = prepare_watchlist(api, args)
+    currencies_to_watch = [
+        'EUR', 'GBP',
+        'AUD', 'NZD',
+        'CAD', 'CHF',
+        'JPY', 'USD',
+        'SGD'
+    ]
+    
+    watchlist = prepare_watchlist(api, args, currencies_to_watch)
+    candles, incomplete = warmup(
+        watchlist,
+        api,
+        granularities=['M1', 'M15', 'H1', 'H4', 'D']
+    )
+    print(incomplete)
     wb: xw.Book = get_workbook()
     while True:
         start = time.time()
-        cycle(pairs, api, args, wb)
+        cycle(watchlist, api, args, wb)
         end = time.time()
-        time.sleep(1 - (end - start))
-        # print('Cycle took: ', end - start)
+        delta = end - start
+        if delta < 1:
+            time.sleep(1 - delta)
+        print(f'Cycle took: {delta} seconds')
 
 if __name__ == "__main__":
     main()

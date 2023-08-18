@@ -39,6 +39,7 @@ def get_df(
     ]
     
     data = []
+    incomplete_candles = list()
 
     candle: v20.instrument.Candlestick
     for candle in res.get("candles", 200):
@@ -52,8 +53,10 @@ def get_df(
                     candle.mid.c,
                 ]
             )
+        else:
+            incomplete_candles.append(candle)
     
     df = pd.DataFrame(data, columns=headers)
     df['time'] = pd.to_datetime(df['time'])
     df.set_index('time', inplace=True)
-    return df
+    return df, incomplete_candles
