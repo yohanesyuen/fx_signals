@@ -1,10 +1,11 @@
-from xlwings import Book
+from nicegui import ui
 from async_v20 import OandaClient
 
 import pandas as pd
 
-async def acycle(pairs, client: OandaClient, wb: Book):
-    sheet = wb.sheets['Sheet1']
+# Remove wb later on...
+# Leave it here for now to avoid breaking the code
+async def acycle(pairs, client: OandaClient, wb: None):
     account_res = await client.account_summary()
     pricing_res = await client.get_pricing(','.join(pairs.keys()))
     
@@ -30,7 +31,7 @@ async def acycle(pairs, client: OandaClient, wb: Book):
     
     account = account_res.get('account')
     # print(account)
-    sheet['A1'].value = df
-    sheet['A1'].options(pd.DataFrame, expand='table').value = df
+    # sheet['A1'].value = df
+    # sheet['A1'].options(pd.DataFrame, expand='table').value = df
     
-    sheet['H2'].value = account.nav
+    # sheet['H2'].value = account.nav

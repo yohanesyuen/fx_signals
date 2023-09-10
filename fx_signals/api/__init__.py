@@ -15,6 +15,23 @@ def api_call(api: v20.Context, fn, *args, **kwargs):
 def candles_to_df(candles: v20.instrument.Candlestick):
     pass
 
+def get_candles(
+    api: v20.Context,
+    fromTime,
+    instrument: str,
+    granularity: str,
+    count: int = 500
+):
+    res = api_call(
+        api,
+        api.instrument.candles,
+        instrument=instrument,
+        granularity=granularity,
+        count=count,
+        fromTime=fromTime
+    )
+        
+
 def get_df(
     api: v20.Context,
     instrument: str,
